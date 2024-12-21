@@ -1,3 +1,4 @@
-node_modules/
-myenv/
-
+node_modules
+myenv
+__pycache__
+static
