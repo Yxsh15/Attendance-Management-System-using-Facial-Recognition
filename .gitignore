@@ -1,4 +1,9 @@
+___pycache__
 node_modules
 myenv
-__pycache__
 static
+tailwind.config.js
+postcss.config.js
+package.json
+package-lock.json
+.gitignore
