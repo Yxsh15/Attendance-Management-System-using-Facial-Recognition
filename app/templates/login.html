@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if mode == 'signup' %}
+        Sign Up - Attendance System
+    {% else %}
+        Login - Attendance System
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-8">
+        <div class="flex justify-center space-x-4 mb-8">
+            <a href="{{ url_for('auth.login') }}" 
+               class="text-lg font-bold {% if mode != 'signup' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600{% endif %}">
+                Login
+            </a>
+            <a href="{{ url_for('auth.signup') }}" 
+               class="text-lg font-bold {% if mode == 'signup' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-600{% endif %}">
+                Sign Up
+            </a>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.signup' if mode == 'signup' else 'auth.login') }}">
+            <div class="mb-6">
+                <label for="username" class="block mb-2 text-sm font-medium text-gray-900">Username</label>
+                <input type="text" id="username" name="username" required
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block mb-2 text-sm font-medium text-gray-900">Password</label>
+                <input type="password" id="password" name="password" required
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+            </div>
+            {% if mode == 'signup' %}
+            <div class="mb-6">
+                <label for="confirm_password" class="block mb-2 text-sm font-medium text-gray-900">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+            </div>
+            {% endif %}
+            <button type="submit"
+                class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                {{ 'Sign Up' if mode == 'signup' else 'Login' }}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

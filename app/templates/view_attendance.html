@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}View Attendance - Attendance System{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <div class="px-6 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Attendance Records</h2>
+            <button onclick="exportToCSV()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">
+                Export to CSV
+            </button>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label for="subject-filter" class="block text-sm font-medium text-gray-700">Subject</label>
+                <select id="subject-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">All Subjects</option>
+                    {% for subject in subjects %}
+                    <option value="{{ subject }}">{{ subject }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label for="date-from" class="block text-sm font-medium text-gray-700">From Date</label>
+                <input type="date" id="date-from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="date-to" class="block text-sm font-medium text-gray-700">To Date</label>
+                <input type="date" id="date-to" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+                <input type="text" id="search" placeholder="Search by name or enrollment" 
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+        </div>
+
+        <!-- Table Section -->
+        <div class="overflow-x-auto">
+            <table id="attendance-table" class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" onclick="sortTable(0)">Student Name ↕</th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" onclick="sortTable(1)">Enrollment ↕</th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" onclick="sortTable(2)">Subject ↕</th>
+                        <th scope="col" class="px-6 py-3 cursor-pointer" onclick="sortTable(3)">Date ↕</th>
+                        <th scope="col" class="px-6 py-3">Time</th>
+                        <th scope="col" class="px-6 py-3">Marked By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attendance in attendances %}
+                    <tr class="bg-white border-b hover:bg-gray-50">
+                        <td class="px-6 py-4">{{ attendance.student.name }}</td>
+                        <td class="px-6 py-4">{{ attendance.student.enrollment }}</td>
+                        <td class="px-6 py-4">{{ attendance.subject }}</td>
+                        <td class="px-6 py-4">{{ attendance.date.strftime('%Y-%m-%d') }}</td>
+                        <td class="px-6 py-4">{{ attendance.time.strftime('%H:%M:%S') }}</td>
+                        <td class="px-6 py-4">{{ attendance.marked_by_user.username }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectFilter = document.getElementById('subject-filter');
+    const dateFrom = document.getElementById('date-from');
+    const dateTo = document.getElementById('date-to');
+    const search = document.getElementById('search');
+    const table = document.getElementById('attendance-table');
+
+    // Filter function
+    function filterTable() {
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        const searchText = search.value.toLowerCase();
+        const subject = subjectFilter.value;
+        const fromDate = dateFrom.value ? new Date(dateFrom.value) : null;
+        const toDate = dateTo.value ? new Date(dateTo.value) : null;
+
+        for (let row of rows) {
+            const name = row.cells[0].textContent.toLowerCase();
+            const enrollment = row.cells[1].textContent.toLowerCase();
+            const rowSubject = row.cells[2].textContent;
+            const date = new Date(row.cells[3].textContent);
+
+            const matchesSearch = name.includes(searchText) || enrollment.includes(searchText);
+            const matchesSubject = !subject || rowSubject === subject;
+            const matchesDateRange = (!fromDate || date >= fromDate) && (!toDate || date <= toDate);
+
+            row.style.display = matchesSearch && matchesSubject && matchesDateRange ? '' : 'none';
+        }
+    }
+
+    // Add event listeners
+    subjectFilter.addEventListener('change', filterTable);
+    dateFrom.addEventListener('change', filterTable);
+    dateTo.addEventListener('change', filterTable);
+    search.addEventListener('input', filterTable);
+
+    // Sort function
+    window.sortTable = function(n) {
+        let switching = true;
+        let dir = "asc";
+        let switchcount = 0;
+        
+        while (switching) {
+            switching = false;
+            const rows = table.rows;
+            
+            for (let i = 1; i < (rows.length - 1); i++) {
+                let shouldSwitch = false;
+                const x = rows[i].getElementsByTagName("TD")[n];
+                const y = rows[i + 1].getElementsByTagName("TD")[n];
+                
+                if (dir == "asc") {
+                    if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                } else if (dir == "desc") {
+                    if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
+                    }
+                }
+                
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                }
+            }
+            
+            if (switchcount == 0 && dir == "asc") {
+                dir = "desc";
+                switching = true;
+            }
+        }
+    }
+
+    // Export function
+    window.exportToCSV = function() {
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        let csv = 'Student Name,Enrollment,Subject,Date,Time,Marked By\n';
+        
+        for (let row of rows) {
+            if (row.style.display !== 'none') {
+                const values = Array.from(row.cells).map(cell => `"${cell.textContent}"`);
+                csv += values.join(',') + '\n';
+            }
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('hidden', '');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'attendance_report.csv');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+});
+</script>
+{% endblock %}

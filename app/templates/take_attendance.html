@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">Take Attendance</h1>
+
+    <!-- Subject Form -->
+    <div class="mb-8" id="subjectForm" {% if subject %}style="display: none;"{% endif %}>
+        <form method="POST" class="max-w-md">
+            <div class="mb-4">
+                <label for="subject" class="block text-gray-700 font-semibold mb-2">Subject Name</label>
+                <input type="text" 
+                       id="subject" 
+                       name="subject" 
+                       required 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Enter subject name"
+                       value="{{ subject if subject }}">
+            </div>
+            <button type="submit" 
+                    class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                Start Taking Attendance
+            </button>
+        </form>
+    </div>
+
+    <!-- Camera Feed Section -->
+    {% if subject %}
+    <div id="cameraSection" class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="mb-4">
+        <h2 class="text-xl font-semibold mb-4 text-center">Camera Feed - {{ subject }}</h2>
+        <div class="flex items-center justify-center">
+            <img src="{{ url_for('main.video_feed') }}" 
+                 class="w-full max-w-2xl border-4 border-gray-300 rounded-lg">
+        </div>
+    </div>
+</div>
+
+        <!-- Attendance Status -->
+        <div id="attendanceStatus" class="mt-4">
+            <h3 class="text-lg font-semibold mb-2">Recently Marked Students</h3>
+            <div id="markedStudents" class="space-y-2">
+                <!-- Dynamically populated list of marked students -->
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="mt-6 space-x-4">
+            <a href="{{ url_for('main.stop_attendance') }}" 
+               class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
+                Stop Taking Attendance
+            </a>
+            <button id="downloadReport" 
+                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                Download Attendance Report
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript for handling attendance -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const subject = document.getElementById('subject')?.value;
+    const markedStudents = document.getElementById('markedStudents');
+    
+    if (subject) {
+        // Start polling for new attendance marks
+        function pollAttendance() {
+            fetch('/get_latest_attendance')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addMarkedStudent(data.student_name, data.enrollment, data.time);
+                    }
+                })
+                .catch(error => console.error('Error:', error))
+                .finally(() => {
+                    // Continue polling
+                    setTimeout(pollAttendance, 1000);
+                });
+        }
+
+        // Start the polling
+        pollAttendance();
+    }
+
+    // Function to add marked student to the list
+    function addMarkedStudent(studentName, enrollment, time) {
+        const studentElement = document.createElement('div');
+        studentElement.className = 'p-2 bg-green-100 rounded-md';
+        studentElement.innerHTML = `
+            <span class="font-semibold">${studentName}</span>
+            <span class="text-gray-600 ml-2">(${enrollment})</span>
+            <span class="text-gray-500 text-sm ml-2">${time}</span>
+        `;
+        markedStudents.prepend(studentElement);
+    }
+});
+</script>
+{% endblock %}
