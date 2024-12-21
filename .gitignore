@@ -8,3 +8,5 @@ package-lock.json
 .gitignore
 __pycache__
 config.py
+app/__pycache__/
+app/static/trainer/trainner.yml
