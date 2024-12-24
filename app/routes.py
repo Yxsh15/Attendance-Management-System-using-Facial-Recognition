@@ -7,8 +7,8 @@ import json
 from app import db
 from app.models import User, Student, Attendance
 import os
-from threading import Thread, Lock  # Added Lock import
-import threading  # Added threading module import
+from threading import Thread, Lock
+import threading
 import time
 import queue
 from flask import current_app
@@ -20,8 +20,6 @@ auth = Blueprint('auth', __name__)
 frame_queue = queue.Queue(maxsize=10)
 current_frame = None
 frame_lock = threading.Lock()
-
-# Rest of the code remains the same...
 
 # Authentication routes
 @auth.route('/signup', methods=['GET', 'POST'])
@@ -52,7 +50,6 @@ def signup():
 
     return render_template('login.html', mode='signup')
 
-
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -72,20 +69,17 @@ def login():
 
     return render_template('login.html', mode='login')
 
-
 @auth.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
-
 # Main routes
 @main.route('/')
 @login_required
 def index():
     return render_template('index.html')
-
 
 @main.route('/register_student', methods=['GET', 'POST'])
 @login_required
@@ -105,7 +99,6 @@ def register_student():
         return redirect(url_for('main.capture_images', student_id=student.id))
 
     return render_template('register_student.html')
-
 
 def background_attendance_processor(app, subject):
     with app.app_context():
@@ -168,7 +161,6 @@ def background_attendance_processor(app, subject):
 
             time.sleep(0.1)  # Small delay to prevent CPU overuse
 
-
 @main.route('/take_attendance', methods=['GET', 'POST'])
 @login_required
 def take_attendance():
@@ -188,6 +180,57 @@ def take_attendance():
         
     return render_template('take_attendance.html')
 
+@main.route('/mark_manual_attendance', methods=['POST'])
+@login_required
+def mark_manual_attendance():
+    enrollment = request.form.get('enrollment')
+    name = request.form.get('name')
+    subject = request.form.get('subject')
+
+    if not all([enrollment, name, subject]):
+        return jsonify({
+            'success': False,
+            'message': 'All fields are required'
+        })
+
+    # Check if student exists
+    student = Student.query.filter_by(enrollment=enrollment).first()
+    
+    # If student doesn't exist, create a new one
+    if not student:
+        student = Student(enrollment=enrollment, name=name)
+        db.session.add(student)
+        db.session.commit()
+
+    # Check if attendance already marked
+    existing_attendance = Attendance.query.filter_by(
+        student_id=student.id,
+        subject=subject,
+        date=datetime.now().date()
+    ).first()
+
+    if existing_attendance:
+        return jsonify({
+            'success': False,
+            'message': 'Attendance already marked for this student today'
+        })
+
+    # Mark attendance
+    attendance = Attendance(
+        student_id=student.id,
+        subject=subject,
+        date=datetime.now().date(),
+        time=datetime.now().time()
+    )
+    db.session.add(attendance)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'student_name': student.name,
+        'enrollment': student.enrollment,
+        'time': datetime.now().strftime('%H:%M:%S')
+    })
 
 @main.route('/get_latest_attendance')
 def get_latest_attendance():
@@ -196,7 +239,6 @@ def get_latest_attendance():
         return jsonify({'success': True, **attendance_data})
     except queue.Empty:
         return jsonify({'success': False})
-
 
 @main.route('/stop_attendance')
 @login_required
@@ -209,7 +251,6 @@ def stop_attendance():
             break
     
     return redirect(url_for('main.take_attendance'))
-
 
 @main.route('/capture_images/<int:student_id>')
 @login_required
@@ -265,7 +306,6 @@ def capture_images(student_id):
     flash(f'Student {student.name} registered successfully!', 'success')
     return redirect(url_for('main.index'))
 
-
 @main.route('/finish_capture/<int:student_id>')
 @login_required
 def finish_capture(student_id):
@@ -273,9 +313,8 @@ def finish_capture(student_id):
     flash(f'Student {student.name} registered successfully!', 'success')
     return redirect(url_for('main.index'))
 
-
-def generate_frames(app):  # Accept app as a parameter
-    with app.app_context():  # Use the provided app context
+def generate_frames(app):
+    with app.app_context():
         camera = cv2.VideoCapture(0)
         face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
         recognizer = cv2.face.LBPHFaceRecognizer_create()
@@ -303,7 +342,7 @@ def generate_frames(app):  # Accept app as a parameter
                         if student:
                             cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
                             cv2.putText(frame, f'{student.name}', (x, y-10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+                                      cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
                             with frame_lock:
                                 global current_frame
                                 current_frame = frame.copy()
@@ -314,14 +353,12 @@ def generate_frames(app):  # Accept app as a parameter
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            
+
 @main.route('/video_feed')
 def video_feed():
-    app = current_app._get_current_object()  # Get the app instance
+    app = current_app._get_current_object()
     return Response(generate_frames(app),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
+                   mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @main.route('/view_attendance')
 @login_required
@@ -331,7 +368,6 @@ def view_attendance():
     subjects = db.session.query(Attendance.subject).distinct().order_by(Attendance.subject).all()
     subjects = [subject[0] for subject in subjects]  # Convert from tuple to list
     return render_template('view_attendance.html', attendances=attendances, subjects=subjects)
-
 
 @main.route('/train_model')
 @login_required

@@ -27,34 +27,80 @@
     <!-- Camera Feed Section -->
     {% if subject %}
     <div id="cameraSection" class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="mb-4">
-        <h2 class="text-xl font-semibold mb-4 text-center">Camera Feed - {{ subject }}</h2>
-        <div class="flex items-center justify-center">
-            <img src="{{ url_for('main.video_feed') }}" 
-                 class="w-full max-w-2xl border-4 border-gray-300 rounded-lg">
-        </div>
-    </div>
-</div>
-
-        <!-- Attendance Status -->
-        <div id="attendanceStatus" class="mt-4">
-            <h3 class="text-lg font-semibold mb-2">Recently Marked Students</h3>
-            <div id="markedStudents" class="space-y-2">
-                <!-- Dynamically populated list of marked students -->
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-4 text-center">Camera Feed - {{ subject }}</h2>
+            <div class="flex items-center justify-center">
+                <img src="{{ url_for('main.video_feed') }}" 
+                     class="w-full max-w-2xl border-4 border-gray-300 rounded-lg">
             </div>
         </div>
+    </div>
 
-        <!-- Control Buttons -->
-        <div class="mt-6 space-x-4">
-            <a href="{{ url_for('main.stop_attendance') }}" 
-               class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
-                Stop Taking Attendance
-            </a>
-            <button id="downloadReport" 
-                    class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
-                Download Attendance Report
-            </button>
+    <!-- Manual Attendance Button -->
+    <div class="mt-4 text-center">
+        <button id="openManualAttendance" 
+                class="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Manual Attendance
+        </button>
+    </div>
+
+    <!-- Manual Attendance Modal -->
+    <div id="manualAttendanceModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Manual Attendance</h3>
+                <button id="closeManualAttendance" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="manualAttendanceForm" class="space-y-4">
+                <input type="hidden" name="subject" value="{{ subject }}">
+                <div>
+                    <label for="enrollment" class="block text-gray-700 font-semibold mb-2">Enrollment Number</label>
+                    <input type="text" 
+                           id="enrollment" 
+                           name="enrollment" 
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter enrollment number">
+                </div>
+                <div>
+                    <label for="name" class="block text-gray-700 font-semibold mb-2">Student Name</label>
+                    <input type="text" 
+                           id="name" 
+                           name="name" 
+                           required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter student name">
+                </div>
+                <button type="submit" 
+                        class="w-full bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Mark Attendance
+                </button>
+            </form>
         </div>
+    </div>
+
+    <!-- Attendance Status -->
+    <div id="attendanceStatus" class="mt-8">
+        <h3 class="text-lg font-semibold mb-2">Recently Marked Students</h3>
+        <div id="markedStudents" class="space-y-2">
+            <!-- Dynamically populated list of marked students -->
+        </div>
+    </div>
+
+    <!-- Control Buttons -->
+    <div class="mt-6 space-x-4">
+        <a href="{{ url_for('main.stop_attendance') }}" 
+           class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
+            Stop Taking Attendance
+        </a>
+        <button id="downloadReport" 
+                class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+            Download Attendance Report
+        </button>
     </div>
     {% endif %}
 </div>
@@ -64,6 +110,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const subject = document.getElementById('subject')?.value;
     const markedStudents = document.getElementById('markedStudents');
+    const manualAttendanceForm = document.getElementById('manualAttendanceForm');
+    const manualAttendanceModal = document.getElementById('manualAttendanceModal');
+    const openManualAttendanceBtn = document.getElementById('openManualAttendance');
+    const closeManualAttendanceBtn = document.getElementById('closeManualAttendance');
     
     if (subject) {
         // Start polling for new attendance marks
@@ -84,6 +134,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Start the polling
         pollAttendance();
+
+        // Modal controls
+        openManualAttendanceBtn.addEventListener('click', () => {
+            manualAttendanceModal.classList.remove('hidden');
+        });
+
+        closeManualAttendanceBtn.addEventListener('click', () => {
+            manualAttendanceModal.classList.add('hidden');
+        });
+
+        // Close modal when clicking outside
+        manualAttendanceModal.addEventListener('click', (e) => {
+            if (e.target === manualAttendanceModal) {
+                manualAttendanceModal.classList.add('hidden');
+            }
+        });
+
+        // Handle manual attendance submission
+        manualAttendanceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(manualAttendanceForm);
+
+            fetch('/mark_manual_attendance', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addMarkedStudent(data.student_name, data.enrollment, data.time);
+                    manualAttendanceForm.reset();
+                    manualAttendanceModal.classList.add('hidden');
+                } else {
+                    alert(data.message || 'Error marking attendance');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error marking attendance');
+            });
+        });
     }
 
     // Function to add marked student to the list
