@@ -120,10 +120,6 @@ The application uses the following environment variables (optional):
 - `DATABASE_URL`: SQLite database URL (defaults to `sqlite:///attendance.db`)
 
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details
-
 ## Acknowledgments
 
 - OpenCV for face detection and recognition capabilities
