@@ -5,7 +5,6 @@ tailwind.config.js
 postcss.config.js
 package.json
 package-lock.json
-.gitignore
 __pycache__
 config.py
 app/__pycache__/
